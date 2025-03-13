@@ -16,7 +16,7 @@ interface AuthContextType {
   permissions: Permissions | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
+  signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<{ data: any; error: null | Error }>;
   signOut: () => Promise<void>;
   hasPermission: (resource: string, action: string) => boolean;
 }
@@ -131,8 +131,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, userData: Partial<UserProfile>) => {
     setIsLoading(true);
     try {
-      // Sign up the user
-      const { data, error } = await supabase.auth.signUp({ 
+      // First, get the default role ID before creating the user
+      const { data: roleData, error: roleError } = await supabase
+        .from('employee_roles')
+        .select('id')
+        .eq('name', ROLES.EMPLOYEE)
+        .single();
+        
+      if (roleError) throw roleError;
+      if (!roleData?.id) throw new Error('Default role not found');
+
+      // Then sign up the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
@@ -143,24 +153,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
       
-      if (error) throw error;
-      if (!data.user) throw new Error('User creation failed');
-      
-      // Get the default role for new users (typically 'Employee')
-      const { data: roleData, error: roleError } = await supabase
-        .from('employee_roles')
-        .select('id')
-        .eq('name', ROLES.EMPLOYEE)
-        .single();
-        
-      if (roleError) throw roleError;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
       
       // Create user profile record
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: data.user.id,
-          email: data.user.email || '',
+          id: authData.user.id,
+          email: authData.user.email || '',
           first_name: userData.first_name || '',
           last_name: userData.last_name || '',
           phone: userData.phone || null,
@@ -168,7 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           active: true
         });
         
-      if (profileError) throw profileError;
+      if (profileError) {
+        // If profile creation fails, we should clean up the auth user
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        throw profileError;
+      }
+
+      return { data: authData, error: null };
     } catch (error) {
       console.error('Error signing up:', error);
       throw error;

@@ -37,15 +37,20 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      await signUp(formData.email, formData.password, {
+      const { error } = await signUp(formData.email, formData.password, {
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone: formData.phone,
       });
       
+      if (error) {
+        throw error;
+      }
+
       // Redirect to verification page
       router.push('/auth/verify');
     } catch (error: any) {
+      console.error('Registration error:', error);
       setError(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
