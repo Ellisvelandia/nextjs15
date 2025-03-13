@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/providers/auth-provider';
+import { ROLES } from '@/types/supabase';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,14 +13,15 @@ export default function RegisterPage() {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: ROLES.EMPLOYEE // Default role
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -177,6 +179,24 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-foreground shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-foreground">
+                Role
+              </label>
+              <div className="mt-1">
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-foreground shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                >
+                  <option value={ROLES.EMPLOYEE}>Employee</option>
+                  <option value={ROLES.ADMIN}>Admin</option>
+                </select>
               </div>
             </div>
 

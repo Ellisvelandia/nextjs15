@@ -1,3 +1,5 @@
+import { User } from '@supabase/supabase-js';
+
 export type Json =
   | string
   | number
@@ -345,13 +347,20 @@ export interface TransactionItem {
 // Permissions helper types
 export type PermissionCheck = (resource: ResourceName, action: ActionType) => Promise<boolean>;
 
+export interface SignUpData extends Partial<Database['public']['Tables']['user_profiles']['Row']> {
+  role?: ROLES;
+}
+
 export interface AuthContextType {
-  user: any | null;
-  userRole: ROLES | null;
+  user: User | null;
+  userProfile: UserProfile | null;
+  userRole: Role | null;
+  permissions: Permissions | null;
   isLoading: boolean;
-  signIn: (credentials: { email: string; password: string }) => Promise<any>;
-  signUp: (data: { email: string; password: string; firstName: string; lastName: string; role: ROLES | string }) => Promise<any>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, userData: SignUpData) => Promise<{ data: any; error: null | Error }>;
   signOut: () => Promise<void>;
-  hasPermission: PermissionCheck;
-  isAdmin: boolean;
-} 
+  hasPermission: (resource: string, action: string) => boolean;
+}
+
+export type Role = Database['public']['Tables']['employee_roles']['Row']; 

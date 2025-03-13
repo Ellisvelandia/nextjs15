@@ -131,15 +131,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, userData: Partial<UserProfile>) => {
     setIsLoading(true);
     try {
-      // First, get the default role ID before creating the user
+      // Get the role ID for the specified role (default to Employee if not specified)
+      const roleName = userData.role || ROLES.EMPLOYEE;
       const { data: roleData, error: roleError } = await supabase
         .from('employee_roles')
         .select('id')
-        .eq('name', ROLES.EMPLOYEE)
+        .eq('name', roleName)
         .single();
         
       if (roleError) throw roleError;
-      if (!roleData?.id) throw new Error('Default role not found');
+      if (!roleData?.id) throw new Error('Role not found');
 
       // Then sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({ 
